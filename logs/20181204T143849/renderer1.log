@@ -1,0 +1,2 @@
+[2018-12-04 14:38:53.039] [renderer1] [info] no standard startup: not just one text editor
+[2018-12-04 14:39:05.725] [renderer1] [error] Inotify limit reached (ENOSPC)

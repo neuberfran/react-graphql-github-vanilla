@@ -1,0 +1,8 @@
+[2018-12-04 14:38:50.101] [main] [info] update#setState idle
+[2018-12-04 14:39:20.106] [main] [info] update#setState checking for updates
+[2018-12-04 14:39:20.395] [main] [info] update#setState idle
+[2018-12-04 15:39:20.122] [main] [info] update#setState checking for updates
+[2018-12-04 15:39:21.394] [main] [info] update#setState idle
+[2018-12-04 16:39:20.154] [main] [info] update#setState checking for updates
+[2018-12-04 16:39:23.475] [main] [error] Error: net::ERR_ADDRESS_UNREACHABLE
+[2018-12-04 16:39:23.475] [main] [info] update#setState idle
