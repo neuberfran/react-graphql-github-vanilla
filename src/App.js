@@ -58,12 +58,12 @@ const getIssuesOfRepository = (path, cursor) => {
 const resolveIssuesQuery = (queryResult, cursor) => state => {
   const { data, errors } = queryResult.data;
  
-/*   if (!cursor) {
+  if (!cursor) {
     return {
       organization: data.organization,
       errors,
     };
-  } */
+  }
  
   const { edges: oldIssues } = state.organization.repository.issues;
   const { edges: newIssues } = data.organization.repository.issues;
@@ -132,7 +132,7 @@ const GET_ISSUES_OF_REPOSITORY = `
 `;
 
 const resolveAddStarMutation = mutationResult => state => {
-  const {
+ const {
     viewerHasStarred,
   } = mutationResult.data.data.addStar.starrable;
  
@@ -148,7 +148,6 @@ const resolveAddStarMutation = mutationResult => state => {
   };
 };
  
-
 class App extends Component {
   state = {
     path: "the-road-to-learn-react/the-road-to-learn-react",
