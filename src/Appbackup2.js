@@ -6,8 +6,9 @@ const TITLE = "React GraphQL GitHub Client";
 const axiosGitHubGraphQL = axios.create({
   baseURL: "https://api.github.com/graphql",
   headers: {
-    Authorization: `bearer ${process.env.REACT_APP_GITHUB_PERSONAL_ACCESS_TOKEN
-      }`,
+    Authorization: `bearer ${
+      process.env.REACT_APP_GITHUB_PERSONAL_ACCESS_TOKEN
+    }`,
   },
 });
 
@@ -46,108 +47,40 @@ const getIssuesOfRepositoryQuery = (organization, repository) => `
   }
 `;
 
-const getIssuesOfRepository = (path, cursor) => {
-  const [organization, repository] = path.split('/');
- 
-  return axiosGitHubGraphQL.post('', {
+const getIssuesOfRepository = (path) => {
+  const [organization, repository] = path.split("/");
+
+  return axiosGitHubGraphQL.post("", {
+    //  query: getIssuesOfRepositoryQuery(organization, repository),
     query: GET_ISSUES_OF_REPOSITORY,
-    variables: { organization, repository, cursor },
+    variables: { organization, repository },
   });
 };
 
-const resolveIssuesQuery = (queryResult, cursor) => state => {
-  const { data, errors } = queryResult.data;
- 
-/*   if (!cursor) {
-    return {
-      organization: data.organization,
-      errors,
-    };
-  } */
- 
-  const { edges: oldIssues } = state.organization.repository.issues;
-  const { edges: newIssues } = data.organization.repository.issues;
-  const updatedIssues = [...oldIssues, ...newIssues];
- 
-  return {
-    organization: {
-      ...data.organization,
-      repository: {
-        ...data.organization.repository,
-        issues: {
-          ...data.organization.repository.issues,
-          edges: updatedIssues,
-        },
-      },
-    },
-    errors,
-  };
-};
+const resolveIssuesQuery = (queryResult) => () => ({
+  organization: queryResult.data.data.organization,
+  errors: queryResult.data.errors,
+});
 
 const GET_ISSUES_OF_REPOSITORY = `
-  query ($organization: String!, $repository: String!,
-    $cursor: String
-    ) {
+  query ($organization: String!, $repository: String!) {
     organization(login: $organization) {
       name
       url
       repository(name: $repository) {
-        id
         name
         url
-        viewerHasStarred
-   //     reactions(last: 5) {
-          issues(first: 5, after: $cursor, states: [OPEN]) { 
+        reactions(last: 3) {
           edges {
             node {
               id
               content
             }
           }
-          totalCount
-          pageInfo {
-            endCursor
-            hasNextPage
-          }
         }
       }
     }
   }`;
-
-  const addStarToRepository = repositoryId => {
-    return axiosGitHubGraphQL.post('', {
-      query: ADD_STAR,
-      variables: { repositoryId },
-    });
-  };
-
-  const ADD_STAR = `
-  mutation ($repositoryId: ID!) {
-    addStar(input:{starrableId:$repositoryId}) {
-      starrable {
-        viewerHasStarred
-      }
-    }
-  }
-`;
-
-const resolveAddStarMutation = mutationResult => state => {
-  const {
-    viewerHasStarred,
-  } = mutationResult.data.data.addStar.starrable;
- 
-  return {
-    ...state,
-    organization: {
-      ...state.organization,
-      repository: {
-        ...state.organization.repository,
-        viewerHasStarred,
-      },
-    },
-  };
-};
- 
 
 class App extends Component {
   state = {
@@ -171,28 +104,14 @@ class App extends Component {
     event.preventDefault();
   };
 
-  onFetchFromGitHub = (path, cursor) => {
-    getIssuesOfRepository(path, cursor).then(queryResult =>
-      this.setState(resolveIssuesQuery(queryResult, cursor)),
-    );
-  };
-
-  onFetchMoreIssues = () => {
-    const {
-      endCursor,
-    } = this.state.organization.repository.issues.pageInfo;
- 
-    this.onFetchFromGitHub(this.state.path, endCursor);
-  };
-
-  onStarRepository = (repositoryId, viewerHasStarred) => {
-    addStarToRepository(repositoryId).then(mutationResult =>
-      this.setState(resolveAddStarMutation(mutationResult)),
+  onFetchFromGitHub = (path) => {
+    getIssuesOfRepository(path).then((queryResult) =>
+      this.setState(resolveIssuesQuery(queryResult))
     );
   };
 
   render() {
-    
+    //const { path } = this.state;
     const { path, organization, errors } = this.state;
 
     const GET_REPOSITORY_OF_ORGANIZATION = `
@@ -208,12 +127,7 @@ class App extends Component {
       }
     `;
 
-    const Organization = ({
-      organization,
-      errors,
-      onFetchMoreIssues,
-      onStarRepository,
-    }) => {
+    const Organization = ({ organization, errors }) => {
       if (errors) {
         return (
           <p>
@@ -228,31 +142,17 @@ class App extends Component {
             <strong>Issues from Organization:</strong>
             <a href={organization.url}>{organization.name}</a>
           </p>
-          <Repository repository={organization.repository} 
-           onFetchMoreIssues={onFetchMoreIssues}
-          onStarRepository={onStarRepository} />
+          <Repository repository={organization.repository} />
         </div>
       );
     };
 
-    const Repository = ({
-      repository,
-      onFetchMoreIssues,
-      onStarRepository,
-    }) => (
+    const Repository = ({ repository }) => (
       <div>
         <p>
           <strong>In Repository:</strong>
           <a href={repository.url}>{repository.name}</a>
         </p>
-        <button
-          type="button"
-          onClick={() =>
-            onStarRepository(repository.id, repository.viewerHasStarred)
-          }
-        >
-          {repository.viewerHasStarred ? 'Unstar' : 'Star'}
-        </button>
 
         <ul>
           {repository.issues.edges.map(issue => (
@@ -266,10 +166,6 @@ class App extends Component {
             </li>
           ))}
         </ul>
-        <hr />
-        {repository.issues.pageInfo.hasNextPage && (
-        <button onClick={onFetchMoreIssues}>More</button>
-        )}
       </div>
     );
 
@@ -290,13 +186,10 @@ class App extends Component {
         <hr />
         {/* Here comes the result! */}
         {organization ? (
-          <Organization organization={organization} errors={errors}
-          onFetchMoreIssues={this.onFetchMoreIssues}
-          onStarRepository={this.onStarRepository}
-          />
+          <Organization organization={organization} errors={errors} />
         ) : (
-            <p>No information yet ...</p>
-          )}
+          <p>No information yet ...</p>
+        )}
       </div>
     );
   }
